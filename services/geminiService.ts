@@ -1,10 +1,9 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
 export async function analyzeLegalServices(services: string[], clientInfo: string) {
   try {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: `Sila berikan rumusan ringkas (maksimum 3 ayat) tentang prosedur perundangan untuk perkhidmatan berikut: ${services.join(', ')}. Maklumat pelanggan: ${clientInfo}. Bahasa: Bahasa Melayu.`,
@@ -22,9 +21,10 @@ export async function analyzeLegalServices(services: string[], clientInfo: strin
 
 export async function generateLegalAdvice(services: string[]) {
   try {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `Berikan 3 tips ringkas untuk pelanggan yang mengambil servis: ${services.join(', ')}.`,
+      contents: `Anda adalah peguam syarie pakar. Berikan 3 tips perundangan yang sangat ringkas, padat dan bermanfaat untuk pelanggan yang mengambil servis: ${services.join(', ')}. Fokus kepada langkah persediaan atau pesanan penting.`,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -32,16 +32,28 @@ export async function generateLegalAdvice(services: string[]) {
           properties: {
             tips: {
               type: Type.ARRAY,
-              items: { type: Type.STRING }
+              items: { 
+                type: Type.STRING,
+                description: "Tip perundangan ringkas dalam Bahasa Melayu."
+              }
             }
           },
           required: ["tips"]
         }
       }
     });
-    return JSON.parse(response.text || '{"tips": []}');
+    
+    const text = response.text;
+    if (!text) return { tips: [] };
+    return JSON.parse(text);
   } catch (error) {
     console.error("Gemini Advice Error:", error);
-    return { tips: ["Sila pastikan dokumen lengkap.", "Hubungi peguam untuk temujanji.", "Semak tarikh mahkamah."] };
+    return { 
+      tips: [
+        "Sila pastikan semua dokumen asal dibawa semasa perjumpaan.",
+        "Catat setiap tarikh penting yang dimaklumkan oleh pejabat peguam.",
+        "Sediakan salinan kad pengenalan dan dokumen berkaitan secukupnya."
+      ] 
+    };
   }
 }
